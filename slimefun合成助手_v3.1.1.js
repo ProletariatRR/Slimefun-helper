@@ -14,7 +14,7 @@ function findMutiBlockStructure() {
         neighbor_block["west"] = World.getBlock(dispensor_list[i].add(-1,0,0)).getId()
         neighbor_block["east"] = World.getBlock(dispensor_list[i].add(1,0,0)).getId()
         // Chat.log(neighbor_block["up"])
-        // continue
+        
         let player_pos = me.getPos()
         player_pos.y = dispensor_list[i].y
         let distance = dispensor_list[i].toVector(player_pos).getMagnitude()
