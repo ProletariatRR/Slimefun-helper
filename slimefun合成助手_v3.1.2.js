@@ -232,8 +232,11 @@ function getItemIdBySlot(Index,inventory = Player.openInventory()) {
             if(PublicBukkitValues.has("slimefun:slimefun_item")) {
                 return "slimefun:"+PublicBukkitValues.get("slimefun:slimefun_item").asString()
             }
+            else if(PublicBukkitValues.has("slimefun:slimefun_guide_mode")) {
+                return "slimefun:slimefun_guide"
+            }
             else{
-                return PublicBukkitValues.asString()
+                return Item.getItemId() 
             }
         }
         else{
