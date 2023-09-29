@@ -236,17 +236,12 @@ function findItemByIdInStorage(item_id) {
 
 var LastSyncId = 0
 var me = Player.getPlayer()
-var chest_scanner = World.getWorldScanner().withStringBlockFilter().contains("minecraft:chest").withStringStateFilter().contains("type=right","type=single").build()
+// var chest_scanner = World.getWorldScanner().withStringBlockFilter().contains("minecraft:chest").withStringStateFilter().contains("type=right","type=single").build()
 
+function getItemNbtBySlot(Index) {
+    Item = Player.openInventory().getSlot(Index), Nbt = Item.getNBT()
+    return Nbt
+}
 
-
-var chest_map = build_chest_storage()
-// // res = findItemByIdInStorage("minecraft:stone",chest_map)
-// res = findItemByIdInStorage("slimefun:GOLD_DUST",chest_map)
-// Chat.log(res)
-// me.interact()
-// wait_next_container()
-
-moveItemByIdFromStorageToInventory('slimefun:IRON_DUST',2,chest_map)
-// moveItemByIdFromStorageToInventory('minecraft:stone',64,chest_map)
-// moveItemByIdFromContainerToInventory('minecraft:stone',128)
+res = getItemNbtBySlot(36,Player.openInventory())
+Chat.log(res)

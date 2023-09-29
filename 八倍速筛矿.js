@@ -23,24 +23,24 @@ while (GlobalVars.getBoolean(scriptName)) {
     // 循环中
 
 
-    for (let i = -6517; i <= -6510; i++) {
+    for (let i = -26; i <= -19; i++) {
         // 磨石
-        y = 13
-        z = 5411
+        y = -42
+        z = -9
         me.lookAt(i,y,z) 
         me.interactBlock(i,y,z,'down',false) 
         Client.waitTick(1)
 
         // 筛矿
-        y = 13
-        z = 5405
+        y = -42
+        z = -15
         me.lookAt(i,y,z) 
         me.interactBlock(i,y,z,'down',false) 
         Client.waitTick(1)
 
         // 洗矿
-        y = 7
-        z = 5405
+        y = -47
+        z = -15
         me.lookAt(i,y,z) 
         me.interactBlock(i,y,z,'down',false) 
         Client.waitTick(1)
