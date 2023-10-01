@@ -331,7 +331,7 @@ function merge(a,b) {
 }
 
 function move_sf_guide_to_main_hand(){
-    s = findItemByIdInContainer(SF_ID,['main','hotbar'])
+    s = findItemByIdInContainer("slimefun:slimefun_guide",['main','hotbar'])
     if(s['count'] == 0) {
         Chat.log("背包中未检测到粘液书")
         return false
@@ -339,7 +339,9 @@ function move_sf_guide_to_main_hand(){
     main_hand_slot = Player.openInventory().getSelectedHotbarSlotIndex()
     // KeyBind.pressKeyBind("key.inventory")
     Player.openInventory().swapHotbar(s['slot'][0][0], main_hand_slot) 
-    Client.waitTick(1)
+    while (getItemIdBySlot(s['slot'][0][0])=="slimefun:slimefun_guide") {
+        Client.waitTick(1)
+    }
     // Player.openInventory().close()
     return true
 }
@@ -385,40 +387,41 @@ function product_stack(item_id, item_count, enforced) {
     state = findItemByIdInContainer(item_id,['main','hotbar'])
     let lack = {}
 
+
     if (will_be_used_item[item_id] == null) {
         will_be_used_item[item_id] = 0
     }
 
-    if (state["count"]>=item_count+will_be_used_item[item_id] && !enforced) { 
-        // 已有数量 >= 需要数量 + 已用数量
-        // 已经足够（无需制作）
-        will_be_used_item[item_id]+= item_count // 用掉的个数
-        return {}
-
-    } else if (current_data[item_id] == null || current_data[item_id]['isMaterials'] == true) {
+    if (current_data[item_id] == null || current_data[item_id]['isMaterials'] == true) {
         // 无配方（初级材料）
         lack[item_id] = {
             "name":"",
             "count":item_count
         }
-        return lack
-    }else {
+        // return lack
+    }
+    else {
+        let product_count = 0
+        if (state["count"]>=item_count+will_be_used_item[item_id] && !enforced) { 
+            // 已有数量 >= 需要数量 + 已用数量
+            // 已经足够（无需制作）
+            will_be_used_item[item_id]+= item_count // 用掉的个数
+            product_count = 0
+        } 
+        else{
+            // 制作次数 =  ( 需要数量 - (已有数量 - 已用数量) ) / 产物倍数 
+            product_count = Math.ceil((item_count - (state["count"] - will_be_used_item[item_id])) / current_data[item_id]["output_times"]) 
+            if (enforced) {
+                // 制作次数 =  ( 需要数量 ) / 产物倍数 
+                product_count = Math.ceil((item_count ) / current_data[item_id]["output_times"]) 
+            }
+            will_be_used_item[item_id] -= product_count*current_data[item_id]["output_times"] - item_count // 已使用数量 = 已使用数量 + 当前需要 - 制作的次数*产物倍数
+        }
         // 不够
         // 制作缺少的数量
-        
-        // 制作次数 =  ( 需要数量 - (已有数量 - 已用数量) ) / 产物倍数 
-        let product_count = Math.ceil((item_count - (state["count"] - will_be_used_item[item_id])) / current_data[item_id]["output_times"]) 
 
-        if (enforced) {
-            // 制作次数 =  ( 需要数量 ) / 产物倍数 
-            product_count = Math.ceil((item_count ) / current_data[item_id]["output_times"]) 
-        }
-
-        
-        will_be_used_item[item_id] -= product_count*current_data[item_id]["output_times"] - item_count // 已使用数量 = 已使用数量 + 当前需要 - 制作的次数*产物倍数
-        
         let materials = current_data[item_id]["materials"]
-        var lacking_flag = false // 缺材料标记
+        let lacking_flag = false // 缺材料标记
         for (let i = 0; i < materials.length; i++) {
             // 准备材料
             let inherit_lack = product_stack(materials[i]["material_id"], materials[i]["material_count"]*product_count,false) // 材料入栈
@@ -437,11 +440,11 @@ function product_stack(item_id, item_count, enforced) {
             }
         }
         if (stack[item_id] == null) {   
-            stack[item_id] = product_count
+            stack[item_id] = 0
         }
-        else {
-            stack[item_id] += product_count
-        }
+        
+        stack[item_id] += product_count
+        
     }
 
     return lack
@@ -721,31 +724,11 @@ function update_hud_material(material_dict) { JsMacros.once("Tick", JavaWrapper.
 
 
 function update_hud_queue(queue) { JsMacros.once("Tick", JavaWrapper.methodToJavaAsync(() => {
-    
-    // // 合成队列
-    
-    // // Chat.log('合成队列：'+'('+queue.length+')')
-    // correct_repeat = 0
-    // last_same_item = -1
-
-    // for (let index = 0; index < queue.length && index-correct_repeat+1 <= hud_text_queue.length; index++) {
-
-    //     // let item_name = current_data[]['item_name']
-
-    //     if (queue[index] == queue[index-1]) {
-    //         correct_repeat++
-    //         hud_text_queue[index-correct_repeat+1]?.setText(current_data[queue[index]]['item_name']+" ("+(index-last_same_item+1)+")");
-    //     } else {
-    //         hud_text_queue[index-correct_repeat+1]?.setText(current_data[queue[last_same_item = index]]['item_name']);
-    //     }
-        
-        
-    // }
-    // for (let index = queue.length; index-correct_repeat+1 < hud_text_queue.length; index++) {
-    //     hud_text_queue[index-correct_repeat+1]?.setText("");
-        
-    // }
-    // // CALCULATE_MATERIAL = true;
+    for (const k in queue) {
+        if (queue[k]==0) {
+            delete queue[k]
+        }
+    }
     let current_item_list = Object.keys(queue)
     let total_count = 0
     for (let index = 0; index < current_item_list.length && index+1 < hud_text_queue.length; index++) {
@@ -753,6 +736,7 @@ function update_hud_queue(queue) { JsMacros.once("Tick", JavaWrapper.methodToJav
         let item_count = queue[current_item_list[index]]
         total_count += item_count
         // Chat.log(item_name)
+        
         hud_text_queue[index+1]?.setText(item_name+' ('+item_count+')');
         if (index == hud_text_queue.length-2) {
             hud_text_queue[index+1]?.setText("... ...");
@@ -762,7 +746,7 @@ function update_hud_queue(queue) { JsMacros.once("Tick", JavaWrapper.methodToJav
     for (let index = current_item_list.length; index+1 < hud_text_queue.length; index++) {
         hud_text_queue[index+1]?.setText("");
     }
-    // Chat.log(stack)
+
 }));}
 
 function build_chest_storage() {
@@ -845,7 +829,7 @@ if (reverse) {
     
     d2d.setOnInit(JavaWrapper.methodToJavaAsync(() => {
         const top_line_percentage = 0.05
-        const middle_line_percentage = 0.5
+        const middle_line_percentage = 0.2
         const bottom_line_percentage = 0.90
 
         const w = d2d.getWidth()
@@ -883,10 +867,13 @@ if (reverse) {
     // 初始化Hud
 
     // chest_map = build_chest_storage()
-    ts = parseInt(Player.openInventory().getTotalSlots()/9)*9 - (9- Player.openInventory().getSelectedHotbarSlotIndex())
-    SF_ID = getItemIdBySlot(ts)
-    Chat.log('主手快捷栏：'+ts)
-    Chat.log('已识别粘液书ID：'+SF_ID)
+    
+
+    // ts = parseInt(Player.openInventory().getTotalSlots()/9)*9 - (9- Player.openInventory().getSelectedHotbarSlotIndex())
+    // SF_ID = getItemIdBySlot(ts)
+    // Chat.log('主手快捷栏：'+ts)
+    // Chat.log('已识别粘液书ID：'+SF_ID)
+    move_sf_guide_to_main_hand()
     me.interact()
     wait_next_container()
     // back_to_main_menu()
@@ -896,7 +883,7 @@ if (reverse) {
     Chat.log("已识别粘液书标题："+SF_TITLE)
     
     Chat.log("更新周围箱子库存，请不要手动改变箱子内物品")
-    move_sf_guide_to_main_hand()
+    
     chest_map = build_chest_storage() // 更新库存
     move_sf_guide_to_main_hand()
     
@@ -971,7 +958,7 @@ while (GlobalVars.getBoolean(scriptName)) {
         let queue = {}
         for (let index = 0; index < current_item_list.length && index+1 < hud_text_list.length; index++) {
             lack_queue = make(current_item_list[index],   item_dict[current_item_list[index]])
-            // a_lack, a_queue = make(current_item_list[index],   item_dict[current_item_list[index]])
+
             lack = merge(lack, lack_queue[0])
             queue = merge(queue, lack_queue[1]);
         }
@@ -993,9 +980,9 @@ while (GlobalVars.getBoolean(scriptName)) {
                         break
                     }
                     queue[item_id]--
-                    if (queue[item_id] == 0) {
-                        delete queue[item_id]
-                    }
+                    // if (queue[item_id] == 0) {
+                    //     delete queue[item_id]
+                    // }
                     update_hud_queue(queue)
                 }
             }
