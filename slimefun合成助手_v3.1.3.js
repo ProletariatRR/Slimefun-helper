@@ -339,12 +339,13 @@ function move_sf_guide_to_main_hand(){
     main_hand_slot = Player.openInventory().getSelectedHotbarSlotIndex()
     // KeyBind.pressKeyBind("key.inventory")
     Player.openInventory().swapHotbar(s['slot'][0][0], main_hand_slot) 
-    Player.openInventory().close()
+    Client.waitTick(1)
+    // Player.openInventory().close()
     return true
 }
 
 function empty_main_hand() {
-    Player.openInventory().close()
+    // Player.openInventory().close()
     // while (Player.openInventory().getCurrentSyncId() != 0) {
     //     // Client.waitTick(1)
     //     Chat.log("未返回")
@@ -405,14 +406,16 @@ function product_stack(item_id, item_count, enforced) {
         // 不够
         // 制作缺少的数量
         
+        // 制作次数 =  ( 需要数量 - (已有数量 - 已用数量) ) / 产物倍数 
         let product_count = Math.ceil((item_count - (state["count"] - will_be_used_item[item_id])) / current_data[item_id]["output_times"]) 
 
         if (enforced) {
+            // 制作次数 =  ( 需要数量 ) / 产物倍数 
             product_count = Math.ceil((item_count ) / current_data[item_id]["output_times"]) 
         }
 
-        // 制作次数 =  ( 需要数量 - (已有数量 - 已用数量) ) / 产物倍数 
-        will_be_used_item[item_id] -= product_count*current_data[item_id]["output_times"] - item_count // 已使用数量 = 已使用数量 + 需要 - 制作的次数*产物倍数
+        
+        will_be_used_item[item_id] -= product_count*current_data[item_id]["output_times"] - item_count // 已使用数量 = 已使用数量 + 当前需要 - 制作的次数*产物倍数
         
         let materials = current_data[item_id]["materials"]
         var lacking_flag = false // 缺材料标记
@@ -439,9 +442,6 @@ function product_stack(item_id, item_count, enforced) {
         else {
             stack[item_id] += product_count
         }
-        // for (let i = 0; i < product_count; i++) {
-        //     stack.push(item_id)
-        // }
     }
 
     return lack
@@ -532,15 +532,22 @@ function moveItemByIdFromContainerToInventory(item_id, count) {
     return true
 }
 
-function moveItemByIdFromStorageToInventory(item_id, count) {
+function moveItemByIdFromStorageToInventory(item_id, count, Just_Tick_It = false) {
     
     let storage_state = findItemByIdInStorage(item_id)
     let not_move=count
     // Chat.log(storage_state['count'])
     if (storage_state['count'] < count) {
-        Chat.log("库存剩余 x"+storage_state['count'])
-        return false
+        
+        if(Just_Tick_It) {
+            not_move = storage_state['count']
+        }
+        else{
+            Chat.log(item_id+"库存剩余 x"+storage_state['count'])
+            return false
+        }
     }
+    
 
     let chest_index = 0
 
@@ -557,7 +564,7 @@ function moveItemByIdFromStorageToInventory(item_id, count) {
             
             res = moveItemByIdFromContainerToInventory(item_id,not_move)
             chest_map[storage_state['chest'][chest_index][2]] = Player.openInventory()
-            close_container()
+
             storage_state['chest'][chest_index][1] -= not_move
             not_move = 0
         }
@@ -565,17 +572,25 @@ function moveItemByIdFromStorageToInventory(item_id, count) {
            
             res = moveItemByIdFromContainerToInventory(item_id,storage_state['chest'][chest_index][1])
             chest_map[storage_state['chest'][chest_index][2]] = Player.openInventory()
-            close_container()
+
             not_move -= storage_state['chest'][chest_index][1]
             storage_state['chest'][chest_index][1]=0
             
         }
+
         if (res == false) {
             return false
         }
 
     }
-    return true
+    // 
+    if(Just_Tick_It) {
+        return Math.min(storage_state['count'], count)
+    }
+    else{
+        return true
+    }
+
 }
 
 
@@ -588,11 +603,15 @@ function empty_dispenser(){
 }
 
 function produce(item_id){
-    // Chat.log("制作：" +item_name )
+    // res = moveItemByIdFromStorageToInventory(item_id,1)
+    // if (res == true) {
+    //     Chat.log('已经拿了'+item_id)
+    //     return true
+    // }
+
     let product_method = current_data[item_id]['craft_id']
-    // Chat.log(product_method)
     let materials = current_data[item_id]["materials"]
-    res = empty_main_hand()
+    // res = empty_main_hand()
     if (res == false) {
         return false
     }
@@ -617,13 +636,12 @@ function produce(item_id){
         if(res==false){
             Chat.log("[中断]缺少材料："+materials[i]["material_name"])
             empty_dispenser()
-            close_container()
-
-            REPLENISH_MATERIALS = true
+            // REPLENISH_MATERIALS = true
             return false
-
         }
     }
+
+
 
     me.interactBlock(workstation[product_method]["handle"]["x"],
     workstation[product_method]["handle"]["y"],
@@ -631,12 +649,15 @@ function produce(item_id){
 
     LastSyncId = Player.openInventory().getCurrentSyncId() //更新容器同步ID
 
+    // t = 0
     while(getItemIdBySlot(0)!=item_id){
         //等待产物出现
+        // Chat.log((++t)+'ticks')
         Client.waitTick(1)
     }
     moveItemByIdFromContainerToInventory(item_id, current_data[item_id]['output_times'])
     modify_item_dict(item_id,-current_data[item_id]["output_times"])
+
     return true
 }
 
@@ -702,7 +723,7 @@ function update_hud_material(material_dict) { JsMacros.once("Tick", JavaWrapper.
 function update_hud_queue(queue) { JsMacros.once("Tick", JavaWrapper.methodToJavaAsync(() => {
     
     // // 合成队列
-    // hud_text_queue[0]?.setText('合成队列：'+'('+queue.length+')');
+    
     // // Chat.log('合成队列：'+'('+queue.length+')')
     // correct_repeat = 0
     // last_same_item = -1
@@ -726,15 +747,18 @@ function update_hud_queue(queue) { JsMacros.once("Tick", JavaWrapper.methodToJav
     // }
     // // CALCULATE_MATERIAL = true;
     let current_item_list = Object.keys(queue)
+    let total_count = 0
     for (let index = 0; index < current_item_list.length && index+1 < hud_text_queue.length; index++) {
         let item_name = current_data[current_item_list[index]]['item_name']
         let item_count = queue[current_item_list[index]]
+        total_count += item_count
         // Chat.log(item_name)
         hud_text_queue[index+1]?.setText(item_name+' ('+item_count+')');
         if (index == hud_text_queue.length-2) {
             hud_text_queue[index+1]?.setText("... ...");
         }
     }
+    hud_text_queue[0]?.setText('合成队列：'+'('+total_count+')');
     for (let index = current_item_list.length; index+1 < hud_text_queue.length; index++) {
         hud_text_queue[index+1]?.setText("");
     }
@@ -767,8 +791,9 @@ function build_chest_storage() {
         // Chat.log(dispensor_list[i].toString())
         chest_map[dispensor_list[i].toString()] = Player.openInventory()
         inventory_count++
-        close_container()
+
     }
+    close_container()
     Chat.log("检测到"+inventory_count+"个箱子")
     return chest_map
 }
@@ -864,18 +889,22 @@ if (reverse) {
     Chat.log('已识别粘液书ID：'+SF_ID)
     me.interact()
     wait_next_container()
-    back_to_main_menu()
+    // back_to_main_menu()
     SF_TITLE = Player.openInventory().getContainerTitle()
-    Player.openInventory().close()
+    close_container()
 
     Chat.log("已识别粘液书标题："+SF_TITLE)
     
+    Chat.log("更新周围箱子库存，请不要手动改变箱子内物品")
+    move_sf_guide_to_main_hand()
+    chest_map = build_chest_storage() // 更新库存
+    move_sf_guide_to_main_hand()
     
 
 
     // 初始化监听器
     var ClickSlot_Listener = JsMacros.on("ClickSlot", JavaWrapper.methodToJava((event) => {
-        
+        // Chat.log(event.slot)
         if (event.mode != 5) {
             CALCULATE_MATERIALS = true;
         }
@@ -936,6 +965,7 @@ while (GlobalVars.getBoolean(scriptName)) {
     Client.waitTick(1)
     if (MAKE_ITEM) {
         MAKE_ITEM = false 
+        // chest_map = build_chest_storage() // 更新库存
         current_item_list = Object.keys(item_dict)
         let lack = {}
         let queue = {}
@@ -945,79 +975,105 @@ while (GlobalVars.getBoolean(scriptName)) {
             lack = merge(lack, lack_queue[0])
             queue = merge(queue, lack_queue[1]);
         }
-
         while(Player.openInventory().getCurrentSyncId() != 0){
             Client.waitTick(1)
             // 等待回到正常背包
         }
 
-        var workstation = findMutiBlockStructure()
-
-        let make_list = Object.keys(queue)
-        let lack_flag = false
-        for (let i = 0; i < make_list.length && !lack_flag; i++) {
-            let item_id = make_list[i]
-            for (let j = 0; j < queue[item_id]; j++) {
-                if (! produce(make_list[i])) {
-                    move_sf_guide_to_main_hand()
-                    lack_flag = true
-                    break
+        if (Object.keys(lack).length == 0) {
+            var workstation = findMutiBlockStructure()
+            let make_list = Object.keys(queue)
+            let lack_flag = false
+            for (let i = 0; i < make_list.length && !lack_flag; i++) {
+                let item_id = make_list[i]
+                while (queue[item_id]>0) {
+                    res = produce(make_list[i])
+                    if (res == false) {
+                        lack_flag = true
+                        break
+                    }
+                    queue[item_id]--
+                    if (queue[item_id] == 0) {
+                        delete queue[item_id]
+                    }
+                    update_hud_queue(queue)
                 }
-                
-            }     
+            }
         }
-        // while (make_list.length > 0) {
-        //     let res = produce(queue.shift())
-        //     update_hud_queue(queue)
-
-        //     if (res == false) { // 合成中断
-        //         move_sf_guide_to_main_hand()
-        //         break
-        //     }
-        // }
+        else{
+            REPLENISH_MATERIALS = true
+        }
+        close_container()
         move_sf_guide_to_main_hand()
+
     }
     else if (CALCULATE_MATERIALS){
         CALCULATE_MATERIALS = false
-        current_item_list = Object.keys(item_dict)
+
         let lack = {}
         let queue = {}
-        for (let index = 0; index < current_item_list.length && index+1 < hud_text_list.length; index++) {
-            lack_queue = make(current_item_list[index],   item_dict[current_item_list[index]])
-            // a_lack, a_queue = make(current_item_list[index],   item_dict[current_item_list[index]])
+
+        for (let item_id in item_dict) {
+            lack_queue = make(item_id, item_dict[item_id])
             lack = merge(lack, lack_queue[0])
             queue = merge(queue,lack_queue[1]);
-            // Chat.log(queue)
         }
+
         update_hud_queue(queue)
         update_hud_material(lack)
     }
     else if(REPLENISH_MATERIALS){
-        chest_map = build_chest_storage() // 更新库存
+        // chest_map = build_chest_storage() // 更新库存
         REPLENISH_MATERIALS = false
-        current_item_list = Object.keys(item_dict)
         let lack = {}
         let queue = {}
-        for (let index = 0; index < current_item_list.length && index+1 < hud_text_list.length; index++) {
-            lack_queue = make(current_item_list[index],   item_dict[current_item_list[index]])
-
+        for (let item_id in item_dict) {
+            lack_queue = make(item_id,   item_dict[item_id])
             lack = merge(lack, lack_queue[0])
             queue = merge(queue,lack_queue[1]);
         }
+        update_hud_material(lack) // 计算材料
+
+        // 拿合成队列
         let res 
+        queue_key = Object.keys(queue).reverse()
+        for (let i = 1; i < queue_key.length; i++) {
+            let item_id = queue_key[i]
+
+            res = moveItemByIdFromStorageToInventory(item_id,queue[item_id]*current_data[item_id]['output_times'], Just_Tick_It = true)
+            // Chat.log(item_id+" x "+queue[item_id])
+            if (res > 0) {
+                lack = {}
+                queue = {}
+
+                for (let item_id in item_dict) {
+                    lack_queue = make(item_id, item_dict[item_id])
+                    lack = merge(lack, lack_queue[0])
+                    queue = merge(queue,lack_queue[1]);
+                }
+                update_hud_queue(queue)
+                update_hud_material(lack)
+            }
+        }
+        
+
+
+        // 拿材料列表
+        
         for (let material in lack) {
-            // Chat.log(material)
-            // Chat.log(lack[material]['count'])
             res = moveItemByIdFromStorageToInventory(material,lack[material]['count'])
             if ( res == false ) {
                 break
             }
+            else if (res == true) {
+                delete lack[material]
+                update_hud_material(lack)
+            }
         }
-
+        close_container()
         move_sf_guide_to_main_hand()
         CALCULATE_MATERIALS = true
         if ( res == true ) {
-            update_hud_material({})
             MAKE_ITEM = true
         }
     }
