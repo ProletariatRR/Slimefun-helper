@@ -58,8 +58,7 @@ function build_chest_storage() {
     Chat.log("检测到"+inventory_count+"个箱子")
     return chest_map
 }
-
-function getItemIdBySlot(Index,inventory) {
+function getItemIdBySlot(Index,inventory = Player.openInventory()) {
     var Item = inventory.getSlot(Index)
     var Nbt = Item.getNBT()
 
@@ -72,8 +71,11 @@ function getItemIdBySlot(Index,inventory) {
             if(PublicBukkitValues.has("slimefun:slimefun_item")) {
                 return "slimefun:"+PublicBukkitValues.get("slimefun:slimefun_item").asString()
             }
+            else if(PublicBukkitValues.has("slimefun:slimefun_guide_mode")) {
+                return "slimefun:slimefun_guide"
+            }
             else{
-                return PublicBukkitValues.asString()
+                return Item.getItemId() 
             }
         }
         else{
@@ -81,7 +83,6 @@ function getItemIdBySlot(Index,inventory) {
         }
     }
 }
-
 
 function findItemByIdInContainer(id,map_identifiers,inventory) {
     let correct_slot = []
@@ -243,5 +244,5 @@ function getItemNbtBySlot(Index) {
     return Nbt
 }
 
-res = getItemNbtBySlot(36,Player.openInventory())
+res = getItemIdBySlot(36,Player.openInventory())
 Chat.log(res)
