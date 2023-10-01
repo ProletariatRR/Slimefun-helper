@@ -344,7 +344,11 @@ function move_sf_guide_to_main_hand(){
 }
 
 function empty_main_hand() {
-
+    Player.openInventory().close()
+    // while (Player.openInventory().getCurrentSyncId() != 0) {
+    //     // Client.waitTick(1)
+    //     Chat.log("未返回")
+    // }
     main_hand_slot = Player.openInventory().getSelectedHotbarSlotIndex()
     free_slot = Player.openInventory().findFreeInventorySlot() 
     if (free_slot == -1) {
@@ -354,8 +358,13 @@ function empty_main_hand() {
 
     // Player.openInventory().openGui()
     Player.openInventory().swapHotbar(free_slot, main_hand_slot) 
-    Client.waitTick(1)
+    // Client.waitTick(1)
+    // while (getItemIdBySlot(free_slot) == "minecraft:air") {
+    //     Client.waitTick(1)  
+    //     Chat.log(getItemIdBySlot(free_slot))      
+    // }
     // Player.openInventory().close()
+
     return true
 }
 
@@ -424,16 +433,22 @@ function product_stack(item_id, item_count, enforced) {
                 }
             }
         }
-        for (let i = 0; i < product_count; i++) {
-            stack.push(item_id)
+        if (stack[item_id] == null) {   
+            stack[item_id] = product_count
         }
+        else {
+            stack[item_id] += product_count
+        }
+        // for (let i = 0; i < product_count; i++) {
+        //     stack.push(item_id)
+        // }
     }
 
     return lack
 }
 
 function make(item_id,item_count) {
-    stack = []
+    stack = {}
     will_be_used_item = {}
     return [product_stack(item_id,item_count,true), stack]
 }
@@ -686,31 +701,44 @@ function update_hud_material(material_dict) { JsMacros.once("Tick", JavaWrapper.
 
 function update_hud_queue(queue) { JsMacros.once("Tick", JavaWrapper.methodToJavaAsync(() => {
     
-    // 合成队列
-    hud_text_queue[0]?.setText('合成队列：'+'('+queue.length+')');
-    // Chat.log('合成队列：'+'('+queue.length+')')
-    correct_repeat = 0
-    last_same_item = -1
+    // // 合成队列
+    // hud_text_queue[0]?.setText('合成队列：'+'('+queue.length+')');
+    // // Chat.log('合成队列：'+'('+queue.length+')')
+    // correct_repeat = 0
+    // last_same_item = -1
 
-    for (let index = 0; index < queue.length && index-correct_repeat+1 <= hud_text_queue.length; index++) {
+    // for (let index = 0; index < queue.length && index-correct_repeat+1 <= hud_text_queue.length; index++) {
 
-        // let item_name = current_data[]['item_name']
+    //     // let item_name = current_data[]['item_name']
 
-        if (queue[index] == queue[index-1]) {
-            correct_repeat++
-            hud_text_queue[index-correct_repeat+1]?.setText(current_data[queue[index]]['item_name']+" ("+(index-last_same_item+1)+")");
-        } else {
-            hud_text_queue[index-correct_repeat+1]?.setText(current_data[queue[last_same_item = index]]['item_name']);
+    //     if (queue[index] == queue[index-1]) {
+    //         correct_repeat++
+    //         hud_text_queue[index-correct_repeat+1]?.setText(current_data[queue[index]]['item_name']+" ("+(index-last_same_item+1)+")");
+    //     } else {
+    //         hud_text_queue[index-correct_repeat+1]?.setText(current_data[queue[last_same_item = index]]['item_name']);
+    //     }
+        
+        
+    // }
+    // for (let index = queue.length; index-correct_repeat+1 < hud_text_queue.length; index++) {
+    //     hud_text_queue[index-correct_repeat+1]?.setText("");
+        
+    // }
+    // // CALCULATE_MATERIAL = true;
+    let current_item_list = Object.keys(queue)
+    for (let index = 0; index < current_item_list.length && index+1 < hud_text_queue.length; index++) {
+        let item_name = current_data[current_item_list[index]]['item_name']
+        let item_count = queue[current_item_list[index]]
+        // Chat.log(item_name)
+        hud_text_queue[index+1]?.setText(item_name+' ('+item_count+')');
+        if (index == hud_text_queue.length-2) {
+            hud_text_queue[index+1]?.setText("... ...");
         }
-        
-        
     }
-    for (let index = queue.length; index-correct_repeat+1 < hud_text_queue.length; index++) {
-        hud_text_queue[index-correct_repeat+1]?.setText("");
-        
+    for (let index = current_item_list.length; index+1 < hud_text_queue.length; index++) {
+        hud_text_queue[index+1]?.setText("");
     }
-    // CALCULATE_MATERIAL = true;
-
+    // Chat.log(stack)
 }));}
 
 function build_chest_storage() {
@@ -766,7 +794,7 @@ var current_data = loads(f.read())
 var LastSyncId = 0
 // var workstation = findMutiBlockStructure()
 var workstation
-var stack = []
+var stack = {}
 var will_be_used_item = {}
 var chest_map 
 
@@ -791,7 +819,7 @@ if (reverse) {
     d2d = Hud.createDraw2D()
     
     d2d.setOnInit(JavaWrapper.methodToJavaAsync(() => {
-        const top_line_percentage = 0.35
+        const top_line_percentage = 0.05
         const middle_line_percentage = 0.5
         const bottom_line_percentage = 0.90
 
@@ -907,15 +935,15 @@ while (GlobalVars.getBoolean(scriptName)) {
     // 循环中
     Client.waitTick(1)
     if (MAKE_ITEM) {
-        MAKE_ITEM = false // 制作完成
+        MAKE_ITEM = false 
         current_item_list = Object.keys(item_dict)
         let lack = {}
-        let queue = []
+        let queue = {}
         for (let index = 0; index < current_item_list.length && index+1 < hud_text_list.length; index++) {
             lack_queue = make(current_item_list[index],   item_dict[current_item_list[index]])
             // a_lack, a_queue = make(current_item_list[index],   item_dict[current_item_list[index]])
             lack = merge(lack, lack_queue[0])
-            queue = queue.concat(lack_queue[1]);
+            queue = merge(queue, lack_queue[1]);
         }
 
         while(Player.openInventory().getCurrentSyncId() != 0){
@@ -924,27 +952,42 @@ while (GlobalVars.getBoolean(scriptName)) {
         }
 
         var workstation = findMutiBlockStructure()
-        while (queue.length > 0) {
-            let res = produce(queue.shift())
-            update_hud_queue(queue)
 
-            if (res == false) { // 合成中断
-                move_sf_guide_to_main_hand()
-                break
-            }
+        let make_list = Object.keys(queue)
+        let lack_flag = false
+        for (let i = 0; i < make_list.length && !lack_flag; i++) {
+            let item_id = make_list[i]
+            for (let j = 0; j < queue[item_id]; j++) {
+                if (! produce(make_list[i])) {
+                    move_sf_guide_to_main_hand()
+                    lack_flag = true
+                    break
+                }
+                
+            }     
         }
+        // while (make_list.length > 0) {
+        //     let res = produce(queue.shift())
+        //     update_hud_queue(queue)
+
+        //     if (res == false) { // 合成中断
+        //         move_sf_guide_to_main_hand()
+        //         break
+        //     }
+        // }
         move_sf_guide_to_main_hand()
     }
     else if (CALCULATE_MATERIALS){
         CALCULATE_MATERIALS = false
         current_item_list = Object.keys(item_dict)
         let lack = {}
-        let queue = []
+        let queue = {}
         for (let index = 0; index < current_item_list.length && index+1 < hud_text_list.length; index++) {
             lack_queue = make(current_item_list[index],   item_dict[current_item_list[index]])
             // a_lack, a_queue = make(current_item_list[index],   item_dict[current_item_list[index]])
             lack = merge(lack, lack_queue[0])
-            queue = queue.concat(lack_queue[1]);
+            queue = merge(queue,lack_queue[1]);
+            // Chat.log(queue)
         }
         update_hud_queue(queue)
         update_hud_material(lack)
@@ -954,12 +997,12 @@ while (GlobalVars.getBoolean(scriptName)) {
         REPLENISH_MATERIALS = false
         current_item_list = Object.keys(item_dict)
         let lack = {}
-        let queue = []
+        let queue = {}
         for (let index = 0; index < current_item_list.length && index+1 < hud_text_list.length; index++) {
             lack_queue = make(current_item_list[index],   item_dict[current_item_list[index]])
 
             lack = merge(lack, lack_queue[0])
-            queue = queue.concat(lack_queue[1]);
+            queue = merge(queue,lack_queue[1]);
         }
         let res 
         for (let material in lack) {
@@ -971,7 +1014,7 @@ while (GlobalVars.getBoolean(scriptName)) {
             }
         }
 
-        // move_sf_guide_to_main_hand()
+        move_sf_guide_to_main_hand()
         CALCULATE_MATERIALS = true
         if ( res == true ) {
             update_hud_material({})
