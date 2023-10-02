@@ -2,7 +2,7 @@
 
 测试用版本：
 
-> fabric-1.20.1    jsmacros-1.8.5
+**fabric-1.20.1    jsmacros-1.8.5**
 
 jsmacros最低支持1.8.4（不保证稳定）1.8.3及以下不支持
 
