@@ -331,18 +331,21 @@ function merge(a,b) {
 }
 
 function move_sf_guide_to_main_hand(){
+
     s = findItemByIdInContainer("slimefun:slimefun_guide",['main','hotbar'])
     if(s['count'] == 0) {
         Chat.log("背包中未检测到粘液书")
         return false
     }
     main_hand_slot = Player.openInventory().getSelectedHotbarSlotIndex()
+
+    // main_hand_slot = parseInt(Player.openInventory().getTotalSlots()/9)*9 - (9- Player.openInventory().getSelectedHotbarSlotIndex())
     // KeyBind.pressKeyBind("key.inventory")
     Player.openInventory().swapHotbar(s['slot'][0][0], main_hand_slot) 
-    while (getItemIdBySlot(s['slot'][0][0])=="slimefun:slimefun_guide") {
+    // Player.openInventory().swap(s['slot'][0][0], main_hand_slot) 
+    // while (getItemIdBySlot(main_hand_slot)!= "slimefun:slimefun_guide") {
         Client.waitTick(1)
-    }
-    // Player.openInventory().close()
+    // }
     return true
 }
 
@@ -1009,7 +1012,7 @@ while (GlobalVars.getBoolean(scriptName)) {
         update_hud_queue(queue)
         update_hud_material(lack)
     }
-    else if(REPLENISH_MATERIALS){
+    else if(REPLENISH_MATERIALS && false){
         // chest_map = build_chest_storage() // 更新库存
         REPLENISH_MATERIALS = false
         let lack = {}
@@ -1043,8 +1046,6 @@ while (GlobalVars.getBoolean(scriptName)) {
             }
         }
         
-
-
         // 拿材料列表
         
         for (let material in lack) {

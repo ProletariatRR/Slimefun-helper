@@ -896,7 +896,7 @@ if (reverse) {
     Chat.log("已识别粘液书标题："+SF_TITLE)
     
     Chat.log("更新周围箱子库存，请不要手动改变箱子内物品")
-    move_sf_guide_to_main_hand()
+    // move_sf_guide_to_main_hand()
     chest_map = build_chest_storage() // 更新库存
     move_sf_guide_to_main_hand()
     
