@@ -385,6 +385,7 @@ function open_guide(){
 }
 
 
+
 function product_stack(item_id, item_count, enforced) {
 
     state = findItemByIdInContainer(item_id,['main','hotbar'])
@@ -418,7 +419,8 @@ function product_stack(item_id, item_count, enforced) {
                 // 制作次数 =  ( 需要数量 ) / 产物倍数 
                 product_count = Math.ceil((item_count ) / current_data[item_id]["output_times"]) 
             }
-            will_be_used_item[item_id] -= product_count*current_data[item_id]["output_times"] - item_count // 已使用数量 = 已使用数量 + 当前需要 - 制作的次数*产物倍数
+            will_be_used_item[item_id] -= product_count*current_data[item_id]["output_times"] - item_count
+             // 已使用数量 = 已使用数量 + 当前需要 - 制作的次数*产物倍数
         }
         // 不够
         // 制作缺少的数量
@@ -438,7 +440,10 @@ function product_stack(item_id, item_count, enforced) {
                 if (lack[item] == null) {
                     lack[item] = inherit_lack[item]
                 } else {
-                    lack[item]['count'] += inherit_lack[item]['count']
+                    if (product_count !=0 ) {
+                        lack[item]['count'] += inherit_lack[item]['count']
+                    }
+                    
                 }
             }
         }
@@ -804,10 +809,9 @@ var hud_text_queue = [];
 var f = FS.open('./config/craft_formula.json')
 var current_data = loads(f.read())
 var LastSyncId = 0
-// var workstation = findMutiBlockStructure()
+
 var workstation
-var stack = {}
-var will_be_used_item = {}
+
 var chest_map 
 
 
